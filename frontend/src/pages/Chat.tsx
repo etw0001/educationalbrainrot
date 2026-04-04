@@ -7,6 +7,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { PDFUpload } from "@/components/chat/PDFUpload";
 import { EmptyState } from "@/components/chat/EmptyState";
 import { useChat } from "@/hooks/use-chat";
+import { parsePDF } from "@/lib/api";
 import { toast } from "sonner";
 
 export default function Chat() {
@@ -15,8 +16,10 @@ export default function Chat() {
     activeConversation,
     activeConversationId,
     isLoading,
+    setIsLoading,
     setActiveConversationId,
     createConversation,
+    setPDFData,
     sendMessage,
     deleteConversation,
   } = useChat();
@@ -26,13 +29,28 @@ export default function Chat() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const handleUpload = useCallback(
-    (file: File) => {
+    async (file: File) => {
       setUploadedFile(file);
       const conversationId = createConversation(file.name);
       setActiveConversationId(conversationId);
-      toast.success(`Uploaded ${file.name}`);
+      setIsLoading(true);
+
+      const loadingToast = toast.loading(`Parsing ${file.name}...`);
+
+      try {
+        const result = await parsePDF(file);
+        setPDFData(conversationId, result);
+        toast.success(`Parsed ${file.name} — ${result.metadata.page_count} pages`, {
+          id: loadingToast,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to parse PDF";
+        toast.error(message, { id: loadingToast });
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [createConversation, setActiveConversationId]
+    [createConversation, setActiveConversationId, setIsLoading, setPDFData]
   );
 
   const handleRemoveFile = useCallback(() => {

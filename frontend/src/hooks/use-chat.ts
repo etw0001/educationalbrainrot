@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { Message, Conversation } from "@/types";
+import type { Message, Conversation, ParsedPDF } from "@/types";
 
 function generateId() {
   return Math.random().toString(36).substring(2, 15);
@@ -18,11 +18,34 @@ export function useChat() {
       title: pdfName ? `Chat: ${pdfName}` : "New Chat",
       messages: [],
       pdfName,
+      pdfData: null,
       createdAt: new Date(),
     };
     setConversations((prev) => [newConversation, ...prev]);
     setActiveConversationId(newConversation.id);
     return newConversation.id;
+  }, []);
+
+  const setPDFData = useCallback((conversationId: string, data: ParsedPDF) => {
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id !== conversationId) return c;
+
+        const meta = data.metadata;
+        const totalPages = meta.page_count;
+        const totalTables = data.pages.reduce((sum, p) => sum + p.tables.length, 0);
+        const totalFigures = data.pages.reduce((sum, p) => sum + p.figures.length, 0);
+
+        const systemMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content: `PDF parsed successfully!\n\n**${meta.title || c.pdfName || "Untitled"}**${meta.author ? `\nAuthor: ${meta.author}` : ""}\n\n- ${totalPages} page${totalPages !== 1 ? "s" : ""}\n- ${totalTables} table${totalTables !== 1 ? "s" : ""}\n- ${totalFigures} figure${totalFigures !== 1 ? "s" : ""}\n\nAsk me anything about this document.`,
+          timestamp: new Date(),
+        };
+
+        return { ...c, pdfData: data, messages: [...c.messages, systemMessage] };
+      })
+    );
   }, []);
 
   const sendMessage = useCallback(
@@ -40,7 +63,7 @@ export function useChat() {
         prev.map((c) => {
           if (c.id !== activeConversationId) return c;
           const updated = { ...c, messages: [...c.messages, userMessage] };
-          if (c.messages.length === 0) {
+          if (c.messages.length <= 1) {
             updated.title = content.trim().slice(0, 40) + (content.trim().length > 40 ? "..." : "");
           }
           return updated;
@@ -49,14 +72,18 @@ export function useChat() {
 
       setIsLoading(true);
 
-      // Simulate an AI response — will be replaced by real backend call
-      await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1500));
+      // Placeholder — will be replaced when an LLM endpoint is added
+      await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 700));
+
+      const conv = conversations.find((c) => c.id === activeConversationId);
+      const hasPdf = !!conv?.pdfData;
 
       const assistantMessage: Message = {
         id: generateId(),
         role: "assistant",
-        content:
-          "This is a placeholder response. Once the backend is connected, I'll analyze your PDF and provide real answers based on the content.",
+        content: hasPdf
+          ? "The PDF has been parsed and I have the full text, tables, and figures. Once an LLM endpoint is connected to the backend, I'll give you real answers based on the document content."
+          : "No PDF has been uploaded for this conversation yet. Upload a PDF first so I can analyze it.",
         timestamp: new Date(),
       };
 
@@ -70,7 +97,7 @@ export function useChat() {
 
       setIsLoading(false);
     },
-    [activeConversationId]
+    [activeConversationId, conversations]
   );
 
   const deleteConversation = useCallback(
@@ -88,8 +115,10 @@ export function useChat() {
     activeConversation,
     activeConversationId,
     isLoading,
+    setIsLoading,
     setActiveConversationId,
     createConversation,
+    setPDFData,
     sendMessage,
     deleteConversation,
   };
