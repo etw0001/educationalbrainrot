@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { Message, Conversation, ParsedPDF } from "@/types";
+import type { Message, Conversation, ParsedPDF, VideoJobStatus } from "@/types";
 
 function generateId() {
   return Math.random().toString(36).substring(2, 15);
@@ -20,6 +20,8 @@ export function useChat() {
       pdfName,
       pdfData: null,
       script: null,
+      videoJobId: null,
+      videoStatus: null,
       createdAt: new Date(),
     };
     setConversations((prev) => [newConversation, ...prev]);
@@ -40,7 +42,7 @@ export function useChat() {
         const systemMessage: Message = {
           id: generateId(),
           role: "assistant",
-          content: `PDF parsed successfully!\n\n**${meta.title || c.pdfName || "Untitled"}**${meta.author ? `\nAuthor: ${meta.author}` : ""}\n\n- ${totalPages} page${totalPages !== 1 ? "s" : ""}\n- ${totalTables} table${totalTables !== 1 ? "s" : ""}\n- ${totalFigures} figure${totalFigures !== 1 ? "s" : ""}\n\nAsk me anything about this document.`,
+          content: `PDF parsed successfully!\n\n**${meta.title || c.pdfName || "Untitled"}**${meta.author ? `\nAuthor: ${meta.author}` : ""}\n\n- ${totalPages} page${totalPages !== 1 ? "s" : ""}\n- ${totalTables} table${totalTables !== 1 ? "s" : ""}\n- ${totalFigures} figure${totalFigures !== 1 ? "s" : ""}`,
           timestamp: new Date(),
         };
 
@@ -62,6 +64,42 @@ export function useChat() {
         };
 
         return { ...c, script, messages: [...c.messages, scriptMessage] };
+      })
+    );
+  }, []);
+
+  const setVideoJob = useCallback((conversationId: string, jobId: string, segmentCount: number) => {
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id !== conversationId) return c;
+        const msg: Message = {
+          id: generateId(),
+          role: "assistant",
+          content: `**Video generation started**\n\n${segmentCount} segment${segmentCount !== 1 ? "s" : ""} queued for rendering`,
+          timestamp: new Date(),
+        };
+        return {
+          ...c,
+          videoJobId: jobId,
+          videoStatus: {
+            job_id: jobId,
+            status: "queued",
+            progress: { completed_segments: 0, total_segments: segmentCount },
+            segments: [],
+            final_video_url: null,
+            error: null,
+          },
+          messages: [...c.messages, msg],
+        };
+      })
+    );
+  }, []);
+
+  const updateVideoStatus = useCallback((conversationId: string, status: VideoJobStatus) => {
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id !== conversationId) return c;
+        return { ...c, videoStatus: status };
       })
     );
   }, []);
@@ -138,6 +176,8 @@ export function useChat() {
     createConversation,
     setPDFData,
     setScript,
+    setVideoJob,
+    updateVideoStatus,
     sendMessage,
     deleteConversation,
   };

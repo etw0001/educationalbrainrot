@@ -4,3 +4,5 @@ python-dotenv
 pymupdf
 pdfplumber
 openai
+fal-client
+requests

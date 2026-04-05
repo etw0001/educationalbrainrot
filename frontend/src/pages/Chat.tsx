@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,10 @@ import { Sidebar } from "@/components/chat/Sidebar";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { PDFUpload } from "@/components/chat/PDFUpload";
-import { ParsedPDFPreview } from "@/components/chat/ParsedPDFPreview";
+import { VideoProgress } from "@/components/chat/VideoProgress";
 import { EmptyState } from "@/components/chat/EmptyState";
 import { useChat } from "@/hooks/use-chat";
-import { parsePDF, generateScript } from "@/lib/api";
+import { parsePDF, generateScript, submitVideoJob, pollVideoStatus } from "@/lib/api";
 import { toast } from "sonner";
 
 export default function Chat() {
@@ -23,19 +23,60 @@ export default function Chat() {
     createConversation,
     setPDFData,
     setScript,
+    setVideoJob,
+    updateVideoStatus,
     sendMessage,
     deleteConversation,
   } = useChat();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [selectedCharacter, setSelectedCharacter] = useState("stewie_brian");
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll for video job completion
+  useEffect(() => {
+    if (!activeConversation?.videoJobId) return;
+    const vs = activeConversation.videoStatus;
+    if (!vs || vs.status === "completed" || vs.status === "failed") return;
+
+    const jobId = activeConversation.videoJobId;
+    const convId = activeConversation.id;
+
+    if (pollingRef.current) clearInterval(pollingRef.current);
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const status = await pollVideoStatus(jobId);
+        updateVideoStatus(convId, status);
+
+        if (status.status === "completed" || status.status === "failed") {
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+          if (status.status === "completed") {
+            toast.success("Video ready!");
+          } else {
+            toast.error(status.error || "Video generation failed");
+          }
+        }
+      } catch {
+        // Transient poll error, keep retrying
+      }
+    }, 5000);
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [activeConversation?.videoJobId, activeConversation?.videoStatus?.status, activeConversation?.id, updateVideoStatus]);
 
   const handleUpload = useCallback(
     async (file: File) => {
-      setUploadedFile(file);
-      // Ensure the new conversation is committed before await parsePDF, otherwise
-      // setPDFData's functional update can see prev=[] and wipe the list.
+      const character = selectedCharacter;
       let conversationId = "";
       flushSync(() => {
         conversationId = createConversation(file.name);
@@ -47,15 +88,27 @@ export default function Chat() {
       try {
         const result = await parsePDF(file);
         setPDFData(conversationId, result);
-        toast.success(`Parsed ${file.name} — ${result.metadata.page_count} pages`, {
+        const n = result.metadata.page_count;
+        const pageLabel = n === 1 ? "1 page" : `${n} pages`;
+        toast.success(`Parsed ${file.name} - ${pageLabel}`, {
           id: loadingToast,
         });
 
         const scriptToast = toast.loading("Generating script...");
         try {
-          const { script } = await generateScript(result);
+          const { script } = await generateScript(result, character);
           setScript(conversationId, script);
           toast.success("Script generated!", { id: scriptToast });
+
+          const videoToast = toast.loading("Submitting video job...");
+          try {
+            const { job_id, segment_count } = await submitVideoJob(script, character);
+            setVideoJob(conversationId, job_id, segment_count);
+            toast.success(`Video queued - ${segment_count} segments`, { id: videoToast });
+          } catch (videoErr) {
+            const vmsg = videoErr instanceof Error ? videoErr.message : "Video submission failed";
+            toast.error(vmsg, { id: videoToast });
+          }
         } catch (scriptErr) {
           const msg = scriptErr instanceof Error ? scriptErr.message : "Script generation failed";
           toast.error(msg, { id: scriptToast });
@@ -67,16 +120,16 @@ export default function Chat() {
         setIsLoading(false);
       }
     },
-    [createConversation, setIsLoading, setPDFData, setScript]
+    [selectedCharacter, createConversation, setIsLoading, setPDFData, setScript, setVideoJob]
   );
 
-  const handleRemoveFile = useCallback(() => {
-    setUploadedFile(null);
+  const openUploadModal = useCallback(() => {
+    setUploadModalOpen(true);
   }, []);
 
   const handleNewChat = useCallback(() => {
-    setUploadModalOpen(true);
-  }, []);
+    openUploadModal();
+  }, [openUploadModal]);
 
   return (
     <div className="flex h-dvh bg-background">
@@ -109,29 +162,31 @@ export default function Chat() {
 
         {activeConversation ? (
           <>
-            {activeConversation.pdfData && (
-              <ParsedPDFPreview data={activeConversation.pdfData} />
-            )}
             <MessageList
               messages={activeConversation.messages}
               isLoading={isLoading}
             />
+            {activeConversation.videoStatus && (
+              <VideoProgress status={activeConversation.videoStatus} />
+            )}
             <ChatInput
               onSend={sendMessage}
-              onUploadClick={() => setUploadModalOpen(true)}
+              onUploadClick={openUploadModal}
               disabled={isLoading}
               pdfName={activeConversation.pdfName}
             />
           </>
         ) : (
-          <EmptyState onUploadClick={() => setUploadModalOpen(true)} />
+          <EmptyState
+            selectedCharacter={selectedCharacter}
+            onSelectCharacter={setSelectedCharacter}
+            onUploadClick={openUploadModal}
+          />
         )}
       </main>
 
       <PDFUpload
         onUpload={handleUpload}
-        uploadedFile={uploadedFile}
-        onRemove={handleRemoveFile}
         isVisible={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
       />

@@ -12,6 +12,8 @@ export interface Conversation {
   pdfName: string | null;
   pdfData: ParsedPDF | null;
   script: string | null;
+  videoJobId: string | null;
+  videoStatus: VideoJobStatus | null;
   createdAt: Date;
 }
 
@@ -24,6 +26,41 @@ export interface PDFFile {
 export interface GeneratedScript {
   script: string;
   character: string;
+}
+
+export interface VideoJobSubmitResult {
+  job_id: string;
+  status: string;
+  segment_count: number;
+}
+
+export interface VideoSegmentStatus {
+  segment_index: number;
+  fal_status: string;
+  duration_sec: number;
+  text: string;
+  video_url: string | null;
+  error: string | null;
+}
+
+export interface VideoJobStatus {
+  job_id: string;
+  status: "queued" | "running" | "completed" | "failed";
+  progress: {
+    completed_segments: number;
+    total_segments: number;
+  };
+  segments: VideoSegmentStatus[];
+  final_video_url: string | null;
+  error: string | null;
+}
+
+export interface CharacterOption {
+  id: string;
+  label: string;
+  speakers: [string, string];
+  description: string;
+  emoji: string;
 }
 
 export interface ParsedPDF {
