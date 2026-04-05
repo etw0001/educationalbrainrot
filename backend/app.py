@@ -6,9 +6,18 @@ Accepts PDF uploads, parses them, and returns structured JSON.
 import os
 import uuid
 import shutil
+from pathlib import Path
+
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
+_backend_dir = Path(__file__).resolve().parent
+load_dotenv(_backend_dir.parent / ".env")
+load_dotenv(_backend_dir / ".env")
+
 from parser import parse_pdf
+from scriptgen import generate_script, CHARACTER_PRESETS
 
 app = Flask(__name__)
 CORS(app)
@@ -48,6 +57,34 @@ def parse():
         return jsonify({"error": str(e)}), 500
     finally:
         shutil.rmtree(job_dir, ignore_errors=True)
+
+
+@app.route("/api/characters", methods=["GET"])
+def characters():
+    out = {}
+    for key, preset in CHARACTER_PRESETS.items():
+        out[key] = {"speakers": preset["speakers"], "style": preset["style"]}
+    return jsonify(out)
+
+
+@app.route("/api/generate-script", methods=["POST"])
+def gen_script():
+    body = request.get_json(silent=True)
+    if not body or "parsed_pdf" not in body:
+        return jsonify({"error": "Missing parsed_pdf in request body"}), 400
+
+    character = body.get("character", "stewie_brian")
+    max_lines = body.get("max_lines", 14)
+
+    try:
+        script = generate_script(
+            parsed_pdf=body["parsed_pdf"],
+            character_id=character,
+            max_lines=max_lines,
+        )
+        return jsonify({"script": script, "character": character})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ export interface Conversation {
   messages: Message[];
   pdfName: string | null;
   pdfData: ParsedPDF | null;
+  script: string | null;
   createdAt: Date;
 }
 
@@ -18,6 +19,11 @@ export interface PDFFile {
   file: File;
   name: string;
   size: number;
+}
+
+export interface GeneratedScript {
+  script: string;
+  character: string;
 }
 
 export interface ParsedPDF {

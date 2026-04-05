@@ -9,7 +9,7 @@ import { PDFUpload } from "@/components/chat/PDFUpload";
 import { ParsedPDFPreview } from "@/components/chat/ParsedPDFPreview";
 import { EmptyState } from "@/components/chat/EmptyState";
 import { useChat } from "@/hooks/use-chat";
-import { parsePDF } from "@/lib/api";
+import { parsePDF, generateScript } from "@/lib/api";
 import { toast } from "sonner";
 
 export default function Chat() {
@@ -22,6 +22,7 @@ export default function Chat() {
     setActiveConversationId,
     createConversation,
     setPDFData,
+    setScript,
     sendMessage,
     deleteConversation,
   } = useChat();
@@ -49,6 +50,16 @@ export default function Chat() {
         toast.success(`Parsed ${file.name} — ${result.metadata.page_count} pages`, {
           id: loadingToast,
         });
+
+        const scriptToast = toast.loading("Generating script...");
+        try {
+          const { script } = await generateScript(result);
+          setScript(conversationId, script);
+          toast.success("Script generated!", { id: scriptToast });
+        } catch (scriptErr) {
+          const msg = scriptErr instanceof Error ? scriptErr.message : "Script generation failed";
+          toast.error(msg, { id: scriptToast });
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to parse PDF";
         toast.error(message, { id: loadingToast });
@@ -56,7 +67,7 @@ export default function Chat() {
         setIsLoading(false);
       }
     },
-    [createConversation, setIsLoading, setPDFData]
+    [createConversation, setIsLoading, setPDFData, setScript]
   );
 
   const handleRemoveFile = useCallback(() => {

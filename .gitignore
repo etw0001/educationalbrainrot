@@ -1,0 +1,19 @@
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+.Python
+venv/
+.venv/
+
+# Backend temp uploads
+backend/uploads/
+
+# OS / editor
+.DS_Store
+.idea/

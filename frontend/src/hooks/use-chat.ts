@@ -19,6 +19,7 @@ export function useChat() {
       messages: [],
       pdfName,
       pdfData: null,
+      script: null,
       createdAt: new Date(),
     };
     setConversations((prev) => [newConversation, ...prev]);
@@ -44,6 +45,23 @@ export function useChat() {
         };
 
         return { ...c, pdfData: data, messages: [...c.messages, systemMessage] };
+      })
+    );
+  }, []);
+
+  const setScript = useCallback((conversationId: string, script: string) => {
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id !== conversationId) return c;
+
+        const scriptMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content: `**Generated Script:**\n\n${script}`,
+          timestamp: new Date(),
+        };
+
+        return { ...c, script, messages: [...c.messages, scriptMessage] };
       })
     );
   }, []);
@@ -119,6 +137,7 @@ export function useChat() {
     setActiveConversationId,
     createConversation,
     setPDFData,
+    setScript,
     sendMessage,
     deleteConversation,
   };
