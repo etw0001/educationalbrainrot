@@ -17,7 +17,7 @@ load_dotenv(_backend_dir.parent / ".env")
 load_dotenv(_backend_dir / ".env")
 
 from parser import parse_pdf
-from scriptgen import generate_script, CHARACTER_PRESETS
+from scriptgen import generate_script, chunk_script_by_dialogue, CHARACTER_PRESETS
 
 app = Flask(__name__)
 CORS(app)
@@ -82,9 +82,19 @@ def gen_script():
             character_id=character,
             max_lines=max_lines,
         )
-        return jsonify({"script": script, "character": character})
+
+        script_chunks = chunk_script_by_dialogue(script, max_chars=300)
+        
+        return jsonify({
+            "script": script,
+            "script_chunks": script_chunks,
+            "character": character
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
 
 
 if __name__ == "__main__":

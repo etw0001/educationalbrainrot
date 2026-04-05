@@ -106,6 +106,7 @@ Rules:
 - End with a punchy final line
 - Do not mention camera directions, scene directions, or video editing instructions
 - Do not output JSON
+- Every 12 seconds of dialogue add an @ symbol, if the cutoff is the middle of the sentence do it before the sentence
 - Output only the dialogue in this exact format:
 {speaker_a}: ...
 {speaker_b}: ...
@@ -159,3 +160,47 @@ def generate_script(
         raise RuntimeError("Model returned empty output.")
 
     return text
+
+
+def chunk_script_by_dialogue(script: str, max_chars: int = 300) -> list[str]:
+    """
+    Split a dialogue script into chunks up to max_chars long.
+    Each line of dialogue stays intact whenever possible.
+
+    Rules:
+    - Add full lines to the current chunk until the next full line won't fit.
+    - Then start a new chunk with that next line.
+    - If a single line itself is longer than max_chars, keep it as its own chunk.
+    """
+    lines = [line.strip() for line in script.splitlines() if line.strip()]
+    chunks = []
+    current_chunk = ""
+
+    for line in lines:
+        if not current_chunk:
+            # Start a fresh chunk
+            if len(line) <= max_chars:
+                current_chunk = line
+            else:
+                # One line is longer than max_chars; keep it as its own chunk
+                chunks.append(line)
+        else:
+            candidate = current_chunk + "\n" + line
+
+            if len(candidate) <= max_chars:
+                current_chunk = candidate
+            else:
+                chunks.append(current_chunk)
+
+                if len(line) <= max_chars:
+                    current_chunk = line
+                else:
+                    # One line is longer than max_chars; keep it alone
+                    chunks.append(line)
+                    current_chunk = ""
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    return chunks
+
