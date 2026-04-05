@@ -25,7 +25,9 @@ export function PDFUpload({ onUpload, uploadedFile, onRemove, isVisible, onClose
       const file = acceptedFiles[0];
       if (file) {
         onUpload(file);
-        onClose();
+        // Defer close so React can apply upload state first; avoids file-picker "ghost
+        // clicks" hitting the backdrop and odd focus/navigation side effects.
+        window.setTimeout(() => onClose(), 0);
       }
     },
     [onUpload, onClose]

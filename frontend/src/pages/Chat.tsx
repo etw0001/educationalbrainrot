@@ -1,10 +1,12 @@
 import { useState, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { PDFUpload } from "@/components/chat/PDFUpload";
+import { ParsedPDFPreview } from "@/components/chat/ParsedPDFPreview";
 import { EmptyState } from "@/components/chat/EmptyState";
 import { useChat } from "@/hooks/use-chat";
 import { parsePDF } from "@/lib/api";
@@ -31,8 +33,12 @@ export default function Chat() {
   const handleUpload = useCallback(
     async (file: File) => {
       setUploadedFile(file);
-      const conversationId = createConversation(file.name);
-      setActiveConversationId(conversationId);
+      // Ensure the new conversation is committed before await parsePDF, otherwise
+      // setPDFData's functional update can see prev=[] and wipe the list.
+      let conversationId = "";
+      flushSync(() => {
+        conversationId = createConversation(file.name);
+      });
       setIsLoading(true);
 
       const loadingToast = toast.loading(`Parsing ${file.name}...`);
@@ -50,7 +56,7 @@ export default function Chat() {
         setIsLoading(false);
       }
     },
-    [createConversation, setActiveConversationId, setIsLoading, setPDFData]
+    [createConversation, setIsLoading, setPDFData]
   );
 
   const handleRemoveFile = useCallback(() => {
@@ -92,6 +98,9 @@ export default function Chat() {
 
         {activeConversation ? (
           <>
+            {activeConversation.pdfData && (
+              <ParsedPDFPreview data={activeConversation.pdfData} />
+            )}
             <MessageList
               messages={activeConversation.messages}
               isLoading={isLoading}
