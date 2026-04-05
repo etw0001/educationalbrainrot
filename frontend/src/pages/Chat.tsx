@@ -91,18 +91,18 @@ export default function Chat() {
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center gap-2 px-4 py-3 border-b border-border">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-5">
           {!sidebarOpen && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-foreground"
               onClick={() => setSidebarOpen(true)}
             >
               <PanelLeft className="h-4 w-4" />
             </Button>
           )}
-          <h1 className="text-sm font-semibold truncate">
+          <h1 className="truncate text-[13px] font-semibold leading-none tracking-tight">
             {activeConversation?.title ?? "Educational Brainrot"}
           </h1>
         </header>

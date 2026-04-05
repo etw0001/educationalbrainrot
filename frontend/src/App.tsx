@@ -16,7 +16,16 @@ function Router() {
 function App() {
   return (
     <TooltipProvider>
-      <Toaster richColors position="top-right" />
+      <Toaster
+        richColors
+        position="top-center"
+        toastOptions={{
+          style: {
+            borderRadius: "12px",
+            fontSize: "13px",
+          },
+        }}
+      />
       <Router />
     </TooltipProvider>
   );

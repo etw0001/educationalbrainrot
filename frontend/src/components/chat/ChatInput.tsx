@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Send, Paperclip } from "lucide-react";
+import { ArrowUp, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -38,24 +38,27 @@ export function ChatInput({ onSend, onUploadClick, disabled, pdfName }: ChatInpu
   };
 
   return (
-    <div className="border-t border-border bg-background/80 backdrop-blur-sm">
-      <div className="max-w-3xl mx-auto p-4">
+    <div className="bg-background">
+      <div className="max-w-2xl mx-auto px-4 pb-6 pt-2">
         {pdfName && (
-          <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 mb-2.5 text-xs text-muted-foreground">
             <Paperclip className="h-3 w-3" />
-            <span>Chatting about: <strong className="text-foreground">{pdfName}</strong></span>
+            <span>
+              Chatting about: <span className="text-foreground font-medium">{pdfName}</span>
+            </span>
           </div>
         )}
         <div
           className={cn(
-            "flex items-end gap-2 rounded-2xl border border-input bg-background p-2 transition-colors",
-            "focus-within:ring-1 focus-within:ring-ring focus-within:border-ring"
+            "flex items-end gap-2 rounded-2xl border border-border bg-card px-3 py-2.5",
+            "shadow-sm transition-all duration-200",
+            "focus-within:shadow-md focus-within:border-foreground/20"
           )}
         >
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
             onClick={onUploadClick}
           >
             <Paperclip className="h-4 w-4" />
@@ -69,20 +72,17 @@ export function ChatInput({ onSend, onUploadClick, disabled, pdfName }: ChatInpu
             placeholder="Ask about your PDF..."
             rows={1}
             disabled={disabled}
-            className="flex-1 resize-none border-0 bg-transparent text-sm leading-relaxed placeholder:text-muted-foreground focus:outline-none disabled:opacity-50 max-h-[200px]"
+            className="flex-1 resize-none border-0 bg-transparent text-[13.5px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-50 max-h-[200px] py-1"
           />
           <Button
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-xl"
+            className="h-8 w-8 shrink-0 rounded-xl"
             onClick={handleSend}
             disabled={!value.trim() || disabled}
           >
-            <Send className="h-4 w-4" />
+            <ArrowUp className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground text-center mt-2">
-          Upload a PDF and ask questions about its content
-        </p>
       </div>
     </div>
   );
