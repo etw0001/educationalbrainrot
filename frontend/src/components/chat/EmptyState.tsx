@@ -1,4 +1,4 @@
-import { FileUp, Sparkles, Zap, BookOpen } from "lucide-react";
+import { FileUp, Zap, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
@@ -31,27 +31,22 @@ export function EmptyState({ onUploadClick }: EmptyStateProps) {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="text-center max-w-lg"
+        className="max-w-2xl text-center"
       >
-        <div className="flex justify-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-foreground flex items-center justify-center">
-            <Sparkles className="h-6 w-6 text-background" />
-          </div>
-        </div>
-
         <h1 className="text-3xl font-semibold tracking-tight mb-3">
           Educational Brainrot
         </h1>
-        <p className="text-muted-foreground text-base mb-10 leading-relaxed max-w-sm mx-auto">
-          Turn research papers into entertaining dialogues powered by AI.
-        </p>
+        <div className="mb-10 w-full max-w-full overflow-x-auto">
+          <p className="whitespace-nowrap text-base leading-relaxed text-muted-foreground">
+            Turn research papers into entertaining dialogues powered by AI.
+          </p>
+        </div>
 
         <Button
           onClick={onUploadClick}
           size="lg"
-          className="rounded-full px-8 h-12 text-sm font-medium gap-2.5 shadow-sm hover:shadow-md transition-shadow"
+          className="h-12 rounded-full px-8 text-sm font-medium shadow-sm transition-shadow hover:shadow-md"
         >
-          <FileUp className="h-4 w-4" />
           Upload a PDF to get started
         </Button>
 

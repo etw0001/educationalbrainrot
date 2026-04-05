@@ -31,7 +31,7 @@ export function Sidebar({
       )}
     >
       <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-5">
-        <h2 className="text-[13px] font-semibold leading-none tracking-tight text-sidebar-foreground">
+        <h2 className="text-base font-semibold leading-none tracking-tight text-sidebar-foreground">
           Conversations
         </h2>
         <div className="flex shrink-0 items-center gap-0.5">

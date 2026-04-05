@@ -102,7 +102,7 @@ export default function Chat() {
               <PanelLeft className="h-4 w-4" />
             </Button>
           )}
-          <h1 className="truncate text-[13px] font-semibold leading-none tracking-tight">
+          <h1 className="truncate text-base font-semibold leading-none tracking-tight">
             {activeConversation?.title ?? "Educational Brainrot"}
           </h1>
         </header>
